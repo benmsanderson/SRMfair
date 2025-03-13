@@ -80,5 +80,3 @@ Future work may extend this framework to include:
 - Stern (2007). *The Economics of Climate Change: The Stern Review.* Cambridge University Press.
 - MacMartin et al. (2014, 2018). *Philosophical Transactions of the Royal Society A*.
 
-## License
-[Specify license here, e.g., MIT License or Creative Commons]
