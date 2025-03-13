@@ -7,6 +7,18 @@ import sys
 import pandas as pd
 
 def print_progress_bar(index, total, label):
+    """
+    Print a progress bar to the console.
+
+    Parameters:
+    ----------
+    index : int
+        Current progress index.
+    total : int
+        Total number of steps.
+    label : str
+        Label to display next to the progress bar.
+    """
     n_bar = 50  # Progress bar width
     progress = index / total
     sys.stdout.write('\r')
@@ -15,6 +27,19 @@ def print_progress_bar(index, total, label):
 
 
 def make_params(n=100):
+    """
+    Generate parameter sets for the FaIR model.
+
+    Parameters:
+    ----------
+    n : int
+        Number of parameter sets to generate.
+
+    Returns:
+    -------
+    pmat : pd.DataFrame
+        DataFrame containing the generated parameter sets.
+    """
     samples = n
 
     # generate some joint lognormal TCR and ECS pairs
@@ -77,6 +102,29 @@ def make_params(n=100):
     return pmat
 
 def run_fair(emissions, pmat0=None, useMultigas=True,other_rf=None):
+    """
+    Run the FaIR model with the given emissions and parameters.
+
+    Parameters:
+    ----------
+    emissions : array-like
+        Emissions data.
+    pmat0 : pd.DataFrame, optional
+        DataFrame containing the parameter sets.
+    useMultigas : bool, optional
+        Whether to use the multigas configuration.
+    other_rf : array-like, optional
+        Other radiative forcing data.
+
+    Returns:
+    -------
+    Ce : np.ndarray
+        Concentrations.
+    Fe : np.ndarray
+        Forcings.
+    Te : np.ndarray
+        Temperatures.
+    """
     if type(pmat0)==type(None):
         pl=[]
         pdc={}
@@ -120,6 +168,19 @@ def run_fair(emissions, pmat0=None, useMultigas=True,other_rf=None):
 
 
 def constrain_params(pmat):
+    """
+    Constrain the parameter sets based on historical temperature data.
+
+    Parameters:
+    ----------
+    pmat : pd.DataFrame
+        DataFrame containing the parameter sets.
+
+    Returns:
+    -------
+    pmat : pd.DataFrame
+        Constrained parameter sets.
+    """
     #Follow Smith et al to constrain output based on CW
     try:
         # For Python 3.0 and later
@@ -147,7 +208,22 @@ def constrain_params(pmat):
 
 
 def generate_efficacy(mean, length):
-    # Ensure the mean is between 0 and 1
+    """
+    Generate a random sequence of SRM efficacy values.
+
+    Parameters:
+    ----------
+    mean : float
+        Mean efficacy value.
+    length : int
+        Length of the sequence.
+
+    Returns:
+    -------
+    sequence : np.ndarray
+        Generated sequence of efficacy values.
+    """
+        # Ensure the mean is between 0 and 1
     if not (0 <= mean <= 1):
         raise ValueError("Mean must be between 0 and 1")
     
@@ -160,6 +236,19 @@ def generate_efficacy(mean, length):
 
 
 def find_consecutive_zeros(arr):
+    """
+    Find consecutive zeros in an array.
+
+    Parameters:
+    ----------
+    arr : array-like
+        Input array.
+
+    Returns:
+    -------
+    consecutive_zeros : list of lists
+        List of indices of consecutive zeros.
+    """
     consecutive_zeros = []
     current_zeros = []
 
@@ -179,6 +268,27 @@ def find_consecutive_zeros(arr):
 import numpy as np
 
 def simulate_failure(prob_failure=0.01, avg_outage_length=10, total_years=100,mean_efficacy=0.001):
+    """
+    Simulate SRM failure events and their impact on efficacy.
+
+    Parameters:
+    ----------
+    prob_failure : float
+        Annual probability of SRM failure.
+    avg_outage_length : int
+        Average length of SRM outages (years).
+    total_years : int
+        Total number of years to simulate.
+    mean_efficacy : float
+        Mean efficacy of SRM during non-failure periods.
+
+    Returns:
+    -------
+    failure_sequence : np.ndarray
+        Sequence of SRM failure events (1 for failure, 0 for no failure).
+    fracfail : np.ndarray
+        Fractional efficacy during non-failure periods.
+    """
     if not (0 <= mean_efficacy <= 1):
         raise ValueError("Mean must be between 0 and 1")
     alpha = mean_efficacy * 10
@@ -204,47 +314,85 @@ def simulate_failure(prob_failure=0.01, avg_outage_length=10, total_years=100,me
 
 
 def adpt_fair(ems,sint,threshold,df,wd=2500,wf=1,i=0,p=None,iters=100):
+    """
+    Adaptively deploy SRM to maintain temperature below a threshold.
 
-  Ce, Fe, Te = run_fair(ems.Emissions.emissions,pmat0=p)
-  ems_bs=np.sum(ems.Emissions.emissions[:,1:3],axis=1)
-  f_bs=np.sum(Fe[:,1:11],axis=1)
+    Parameters:
+    ----------
+    ems : object
+        Emissions data.
+    sint : float
+        Sensitivity parameter for SRM adjustment.
+    threshold : float
+        Temperature threshold to maintain.
+    df : pd.DataFrame
+        DataFrame containing SRM configuration parameters.
+    wd : int, optional
+        Width parameter for SRM adjustment.
+    wf : int, optional
+        Weight factor for SRM adjustment.
+    i : int, optional
+        Index of the SRM configuration to use.
+    p : pd.DataFrame, optional
+        DataFrame containing the parameter sets.
+    iters : int, optional
+        Number of iterations for SRM adjustment.
 
-  C45g0, F45g0, T45g0 = run_fair(ems_bs,pmat0=p,other_rf=f_bs,useMultigas=False)
+    Returns:
+    -------
+    Ctmp1 : np.ndarray
+        Concentrations.
+    Ftmp1 : np.ndarray
+        Forcings.
+    Ttmp1 : np.ndarray
+        Temperatures.
+    srm_act : np.ndarray
+        SRM activity.
+    ems1 : np.ndarray
+        Adjusted emissions.
+    T45g0 : np.ndarray
+        Baseline temperatures.
+    """
+    Ce, Fe, Te = run_fair(ems.Emissions.emissions,pmat0=p)
+    ems_bs=np.sum(ems.Emissions.emissions[:,1:3],axis=1)
+    f_bs=np.sum(Fe[:,1:11],axis=1)
+
+    C45g0, F45g0, T45g0 = run_fair(ems_bs,pmat0=p,other_rf=f_bs,useMultigas=False)
 
 
-  Ttmp1=T45g0
-  srm1=f_bs*0
-  de=srm1
-  srm_on=srm1
-  srm_act=srm1
-  
-  
-  istart=int(df.loc[i]['Start']-ems.Emissions.emissions[0,0])
-  iend=int(df.loc[i]['End']-ems.Emissions.emissions[0,0])
-  nyrs=iend-istart
-  failure_sequence,fracfail = simulate_failure(df.loc[i]['pfail'], df.loc[i]['aol'], nyrs, df.loc[i]['Effic'])
-  srm_on[istart:iend]=1-failure_sequence[:]
-  ifade=int(df.loc[i]['fade'])
+    Ttmp1=T45g0
+    srm1=f_bs*0
+    de=srm1
+    srm_on=srm1
+    srm_act=srm1
+    
+    
+    istart=int(df.loc[i]['Start']-ems.Emissions.emissions[0,0])
+    iend=int(df.loc[i]['End']-ems.Emissions.emissions[0,0])
+    nyrs=iend-istart
+    failure_sequence,fracfail = simulate_failure(df.loc[i]['pfail'], df.loc[i]['aol'], nyrs, df.loc[i]['Effic'])
+    srm_on[istart:iend]=1-failure_sequence[:]
+    ifade=int(df.loc[i]['fade'])
 
-  ems1=ems_bs.copy()
-  for j in np.arange(0,iters):
+    ems1=ems_bs.copy()
+    for j in np.arange(0,iters):
 
-    Ctmp1, Ftmp1, Ttmp1 = run_fair(ems1,pmat0=p,other_rf=f_bs+srm1,useMultigas=False)
+        Ctmp1, Ftmp1, Ttmp1 = run_fair(ems1,pmat0=p,other_rf=f_bs+srm1,useMultigas=False)
 
-    ovsht=(Ttmp1-threshold).clip(min=0)
-    srm1=((srm1-ovsht/sint)*srm_on).clip(min=-df.loc[i]['maxsrm']).clip(max=0)
-    srm_g0=srm1*0
-    srm_g0[srm1<-0.1]=1
-    if j<10:
-      ems1=np.interp(np.arange(0,len(srm1),1)-np.cumsum(srm_g0*srm_on*(1-np.sign(np.diff(ems1, prepend=ems1[0])))/2)*df.mhaz[i],np.arange(0,len(srm1),1),ems_bs)
-  srm_act[istart:iend]=srm1[istart:iend]*(fracfail)
-  if ifade>0:
-    srm_act[iend:(iend+ifade)]=srm_act[iend]*(1-np.arange(0,ifade)/ifade)
- 
+        ovsht=(Ttmp1-threshold).clip(min=0)
+        srm1=((srm1-ovsht/sint)*srm_on).clip(min=-df.loc[i]['maxsrm']).clip(max=0)
+        srm_g0=srm1*0
+        srm_g0[srm1<-0.1]=1
+        if j<10:
+        ems1=np.interp(np.arange(0,len(srm1),1)-np.cumsum(srm_g0*srm_on*(1-np.sign(np.diff(ems1, prepend=ems1[0])))/2)*df.mhaz[i],np.arange(0,len(srm1),1),ems_bs)
+    srm_act[istart:iend]=srm1[istart:iend]*(fracfail)
+    if ifade>0:
+        srm_act[iend:(iend+ifade)]=srm_act[iend]*(1-np.arange(0,ifade)/ifade)
+    
 
-  Ctmp1, Ftmp1, Ttmp1 = run_fair(ems1,pmat0=p,other_rf=f_bs+srm_act,useMultigas=False)
+    Ctmp1, Ftmp1, Ttmp1 = run_fair(ems1,pmat0=p,other_rf=f_bs+srm_act,useMultigas=False)
 
-  return Ctmp1, Ftmp1, Ttmp1, srm_act, ems1, T45g0
+    return Ctmp1, Ftmp1, Ttmp1, srm_act, ems1, T45g0
 
 def compute_damages(temperature_series, dt=1.0, a=0.002, b=0.001, c=0.0005, D0=0.0):
     """
@@ -283,6 +431,21 @@ def compute_damages(temperature_series, dt=1.0, a=0.002, b=0.001, c=0.0005, D0=0
     return damages, dT_dt
 
 def calc_damages(T,damage_parameter_sets):
+    """
+    Calculate damages for multiple parameter sets.
+
+    Parameters:
+    ----------
+    T : array-like
+        Temperature time series.
+    damage_parameter_sets : dict
+        Dictionary of damage parameter sets.
+
+    Returns:
+    -------
+    damages : dict
+        Dictionary of calculated damages for each parameter set.
+    """
     damages = {}
     for key, params in damage_parameter_sets.items():
         damages[key], dT_dt = compute_damages(T, a=params["a"], b=params["b"], c=params["c"], D0=params["D0"])
