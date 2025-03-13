@@ -7,6 +7,46 @@ This repository contains a stochastic modeling framework that combines the **FaI
 
 The model simulates global mean temperature (GMT) trajectories under combined emissions and SRM pathways, accounting for uncertainties in climate response, SRM efficacy, operational risks (interruptions), and mitigation behavior (moral hazard). Damages are calculated based on both temperature levels and rates of change, under different discounting assumptions.
 
+## Setup and Dependencies
+
+To run the notebooks and scripts in this repository, ensure you have the following installed:
+
+
+
+### Required Python Packages:
+- `numpy`
+- `pandas`
+- `matplotlib`
+- `scipy`
+- `xarray` (for handling SSP datasets if used in future extensions)
+- `tqdm` (optional, for progress bars in loops)
+- `fair` (version 1.6.4)
+
+You can install these packages via pip:
+
+```bash
+pip install numpy pandas matplotlib scipy xarray tqdm fair==1.6.4
+```
+
+
+
+### File Structure and Imports
+
+- The main functions are contained in `functions.py` and should be imported at the start of your analysis notebook (e.g., `FAIR_SRM.ipynb`) as:
+
+```python
+from functions import adpt_fair, simulate_failure, compute_damages
+```
+
+- Ensure that both `functions.py` and `FAIR_SRM.ipynb` are located in the same working directory, or adjust import paths accordingly.
+
+### Running the Model
+
+To run the model:
+1. Open and execute `FAIR_SRM.ipynb` in Jupyter Notebook or JupyterLab.
+2. Define the emissions and SRM parameter scenarios.
+3. Run the analysis cells to generate temperature trajectories, SRM forcings, and damage estimates.
+
 ## Key Components
 
 ### 1. Climate Response Model: FaIR
@@ -80,47 +120,4 @@ Future work may extend this framework to include:
 - Stern (2007). *The Economics of Climate Change: The Stern Review.* Cambridge University Press.
 - MacMartin et al. (2014, 2018). *Philosophical Transactions of the Royal Society A*.
 
-## License
-[Specify license here, e.g., MIT License or Creative Commons]
-
-
-## Setup and Dependencies
-
-To run the notebooks and scripts in this repository, ensure you have the following installed:
-
-
-
-### Required Python Packages:
-- `numpy`
-- `pandas`
-- `matplotlib`
-- `scipy`
-- `xarray` (for handling SSP datasets if used in future extensions)
-- `tqdm` (optional, for progress bars in loops)
-- `fair` (version 1.6.4)
-
-You can install these packages via pip:
-
-```bash
-pip install numpy pandas matplotlib scipy xarray tqdm fair==1.6.4
-```
-
-
-
-### File Structure and Imports
-
-- The main functions are contained in `functions.py` and should be imported at the start of your analysis notebook (e.g., `FAIR_SRM.ipynb`) as:
-
-```python
-from functions import adpt_fair, simulate_failure, compute_damages
-```
-
-- Ensure that both `functions.py` and `FAIR_SRM.ipynb` are located in the same working directory, or adjust import paths accordingly.
-
-### Running the Model
-
-To run the model:
-1. Open and execute `FAIR_SRM.ipynb` in Jupyter Notebook or JupyterLab.
-2. Define the emissions and SRM parameter scenarios.
-3. Run the analysis cells to generate temperature trajectories, SRM forcings, and damage estimates.
 
