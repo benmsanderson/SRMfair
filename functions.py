@@ -403,7 +403,6 @@ def adpt_fair(ems, sint, threshold, df, wd=2500, wf=1, i=0, p=None, iters=100):
         Ctmp1, Ftmp1, Ttmp1 = run_fair(
             ems1, pmat0=p, other_rf=f_bs + srm1, useMultigas=False
         )
-        print(srm_on)
         ovsht = (Ttmp1 - threshold).clip(min=0)
         srm1 = (
             ((srm1 - ovsht / sint) * srm_on).clip(min=-df.loc[i]["maxsrm"]).clip(max=0)
