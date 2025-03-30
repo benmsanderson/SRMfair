@@ -7,8 +7,7 @@ from scipy import stats
 from scipy import signal
 import pandas as pd
 from matplotlib import pyplot as plt
-import time
-from concurrent.futures import ProcessPoolExecutor, as_completed
+
 
 # %%
 from scipy import stats
@@ -145,6 +144,66 @@ Ce, Fe, T34 = run_fair(ssp3ext.Emissions.emissions, pmat0=None)
 sspname = ["ssp119", "ssp245", "ssp370", "ssp460", "ssp534", "ssp585"]
 ssps = [ssp119, ssp245, ssp370, ssp460, ssp534, ssp585]
 nssps = len(ssps)
+
+# %%
+len(pmat)
+
+# %%
+import time
+import datetime as dt
+
+import os
+import numpy as np
+import time
+import datetime as dt
+from concurrent.futures import ProcessPoolExecutor, as_completed
+
+
+def process_simulation(j, nens, df, ssps, pmat, nt, nssps):
+    """
+    Process a single simulation for a given ensemble member.
+
+    Parameters:
+    ----------
+    j : int
+        Index of the ensemble member.
+    nens : int
+        Total number of ensemble members.
+    df : pd.DataFrame
+        DataFrame containing SRM configuration parameters.
+    ssps : list
+        List of SSP scenarios.
+    pmat : pd.DataFrame
+        Parameter matrix for the ensemble.
+    nt : int
+        Number of time steps.
+    nssps : int
+        Number of SSP scenarios.
+
+    Returns:
+    -------
+    tuple
+        Simulation results for the given ensemble member.
+    """
+    Cmat = np.zeros((nt, len(df), nssps))
+    Fmat = np.zeros((nt, len(df), nssps))
+    Tmat = np.zeros((nt, len(df), nssps))
+    srmmat = np.zeros((nt, len(df), nssps))
+    demat = np.zeros((nt, len(df), nssps))
+    T0mat = np.zeros((nt, len(df), nssps))
+
+    for i, n in enumerate(df.name):
+        for k, ssp in enumerate(ssps[:]):
+            (
+                Cmat[:, i, k],
+                Fmat[:, i, k],
+                Tmat[:, i, k],
+                srmmat[:, i, k],
+                demat[:, i, k],
+                T0mat[:, i, k],
+            ) = adpt_fair(ssp, 5, 1.5, df, i=i, p=pmat.iloc[[j]], iters=50)
+
+    return j, Cmat, Fmat, Tmat, srmmat, demat, T0mat
 
 
 def calcProcessTime(starttime, cur_iter, max_iter):
