@@ -145,65 +145,59 @@ sspname = ["ssp119", "ssp245", "ssp370", "ssp460", "ssp534", "ssp585"]
 ssps = [ssp119, ssp245, ssp370, ssp460, ssp534, ssp585]
 nssps = len(ssps)
 
-# %%
-len(pmat)
 
-# %%
-import time
-import datetime as dt
-
-import os
-import numpy as np
-import time
-import datetime as dt
-from concurrent.futures import ProcessPoolExecutor, as_completed
-
-
-def process_simulation(j, nens, df, ssps, pmat, nt, nssps):
+def calcProcessTime(starttime, cur_iter, max_iter):
     """
-    Process a single simulation for a given ensemble member.
+    Calculate elapsed and remaining time for the process.
 
     Parameters:
     ----------
-    j : int
-        Index of the ensemble member.
-    nens : int
-        Total number of ensemble members.
-    df : pd.DataFrame
-        DataFrame containing SRM configuration parameters.
-    ssps : list
-        List of SSP scenarios.
-    pmat : pd.DataFrame
-        Parameter matrix for the ensemble.
-    nt : int
-        Number of time steps.
-    nssps : int
-        Number of SSP scenarios.
+    starttime : float
+        Start time of the process.
+    cur_iter : int
+        Current iteration number.
+    max_iter : int
+        Total number of iterations.
 
     Returns:
     -------
     tuple
-        Simulation results for the given ensemble member.
+        Elapsed time, remaining time, and estimated finish time.
     """
-    Cmat = np.zeros((nt, len(df), nssps))
-    Fmat = np.zeros((nt, len(df), nssps))
-    Tmat = np.zeros((nt, len(df), nssps))
-    srmmat = np.zeros((nt, len(df), nssps))
-    demat = np.zeros((nt, len(df), nssps))
-    T0mat = np.zeros((nt, len(df), nssps))
+    telapsed = time.time() - starttime
+    testimated = (telapsed / cur_iter) * max_iter
 
-    for i, n in enumerate(df.name):
-        for k, ssp in enumerate(ssps[:]):
-            (
-                Cmat[:, i, k],
-                Fmat[:, i, k],
-                Tmat[:, i, k],
-                srmmat[:, i, k],
-                demat[:, i, k],
-                T0mat[:, i, k],
-            ) = adpt_fair(ssp, 5, 1.5, df, i=i, p=pmat.iloc[[j]], iters=50)
+    finishtime = starttime + testimated
+    finishtime = dt.datetime.fromtimestamp(finishtime).strftime("%H:%M:%S")  # in time
 
-    return j, Cmat, Fmat, Tmat, srmmat, demat, T0mat
+    lefttime = testimated - telapsed  # in seconds
+
+    return int(telapsed), int(lefttime), finishtime
+
+
+def print_progress_bar(index, total, elapsed, remaining, finish_time):
+    """
+    Print a progress bar to the console.
+
+    Parameters:
+    ----------
+    index : int
+        Current progress index.
+    total : int
+        Total number of steps.
+    elapsed : int
+        Elapsed time in seconds.
+    remaining : int
+        Remaining time in seconds.
+    finish_time : str
+        Estimated finish time.
+    """
+    n_bar = 50  # Progress bar width
+    progress = index / total
+    bar = f"[{'=' * int(n_bar * progress):{n_bar}s}]"
+    percentage = f"{int(100 * progress)}%"
+    time_info = f"Elapsed: {elapsed}s | Remaining: {remaining}s | Finish: {finish_time}"
+    print(f"\r{bar} {percentage} {time_info}", end="", flush=True)
 
 
 if __name__ == "__main__":
@@ -228,7 +222,8 @@ if __name__ == "__main__":
             for j in range(nens)
         ]
 
-        for future in as_completed(futures):
+        # Track progress
+        for i, future in enumerate(as_completed(futures), start=1):
             j, Cmat_j, Fmat_j, Tmat_j, srmmat_j, demat_j, T0mat_j = future.result()
 
             # Store results for the current ensemble member
@@ -238,6 +233,12 @@ if __name__ == "__main__":
             srmmat[:, :, j, :] = srmmat_j
             demat[:, :, j, :] = demat_j
             T0mat[:, :, j, :] = T0mat_j
+
+            # Update progress bar
+            elapsed, remaining, finish_time = calcProcessTime(t0, i, nens)
+            print_progress_bar(i, nens, elapsed, remaining, finish_time)
+
+    print("\nAll simulations completed.")
 
     # Create the output directory if it doesn't exist
     os.makedirs("output", exist_ok=True)
