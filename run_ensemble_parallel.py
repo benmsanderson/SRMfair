@@ -109,6 +109,7 @@ def process_simulation(j, df, ssps, pmat, nt, nssps):
 
 
 if __name__ == "__main__":
+    pmat = pd.read_json("params.json")
     nens = len(pmat[:])
     nt = len(ssp3ext.Emissions.emissions)
     nssps = len(ssps)
