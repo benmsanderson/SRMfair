@@ -5,6 +5,7 @@ import pandas as pd
 import datetime as dt
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from fair.SSPs import ssp370, ssp126, ssp585, ssp119, ssp245, ssp534, ssp460
+from functions import *
 
 num_cores = 50
 
