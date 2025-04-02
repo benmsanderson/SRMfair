@@ -4,6 +4,7 @@ import time
 import pandas as pd
 import datetime as dt
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from fair.SSPs import ssp370, ssp126, ssp585, ssp119, ssp245, ssp534, ssp460
 
 num_cores = 50
 
@@ -112,7 +113,9 @@ def process_simulation(j, df, ssps, pmat, nt, nssps):
 if __name__ == "__main__":
     pmat = pd.read_json("params.json")
     nens = len(pmat[:])
-    nt = len(ssp3ext.Emissions.emissions)
+    nt = len(ssp370.Emissions.emissions)
+    ssps = [ssp119, ssp245, ssp370, ssp460, ssp534, ssp585]
+
     nssps = len(ssps)
 
     # Initialize arrays to store results
