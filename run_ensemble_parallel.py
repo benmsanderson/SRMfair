@@ -118,6 +118,20 @@ if __name__ == "__main__":
 
     nssps = len(ssps)
 
+    d = {
+        "name": ["SRMPa", "SRMPb", "SRMPc", "SRMPd", "SRMPe"],
+        "Start": [2040, 2040, 2040, 2040, 2040],
+        "End": [2170, 2170, 2170, 2170, 2170],
+        "Effic": [0.99, 0.9, 0.5, 0.7, 0.99],
+        "fade": [20, 10, 5, 10, 20],
+        "mhaz": [0, 0.4, 0.8, 0.4, 0.9],
+        "pfail": [0.0, 0.008, 0.03, 0.015, 0.008],
+        "aol": [0, 10, 10, 10, 10],
+        "maxsrm": [2.0, 4.0, 4.0, 4.0, 8.0],
+        "regionality": [0.1, 0.3, 0.5, 0.8, 0.1],
+    }
+    df = pd.DataFrame(data=d)
+
     # Initialize arrays to store results
     Cmat = np.zeros((nt, len(df), nens, nssps))
     Fmat = np.zeros((nt, len(df), nens, nssps))
