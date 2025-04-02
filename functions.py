@@ -428,18 +428,27 @@ def adpt_fair(ems, sint, threshold, df, wd=2500, wf=1, i=0, p=None, iters=100):
     Ctmp1, Ftmp1, Ttmp1 = run_fair(
         ems1, pmat0=p, other_rf=f_bs + srm_act, useMultigas=False
     )
+    Ctmp2, Ftmp2, Ttmp2 = run_fair(
+        ems1, pmat0=p, other_rf=f_bs, useMultigas=False
+    )    
 
-    return Ctmp1, Ftmp1, Ttmp1, srm_act, ems1, T45g0
+    return Ctmp1, Ftmp1, Ttmp1, Ttmp2, srm_act, ems1, T45g0
 
 
-def compute_damages(temperature_series, dt=1.0, a=0.002, b=0.001, c=0.0005, D0=0.0):
+def compute_damages(T, T0, R=0.0, dt=1.0, a=0.002, b=0.001, c=0.0005, D0=0.0):
     """
-    Compute time series of damages as a function of global mean temperature anomaly and its rate of change.
+    Compute time series of damages as a function of weighted temperature anomaly
+    and its rate of change, incorporating inter-regional inequality.
 
     Parameters:
     ----------
-    temperature_series : array-like or pd.Series
-        Time series of global mean temperature anomalies (°C).
+    T : array-like
+        Global mean temperature time series (°C).
+    T0 : array-like
+        Alternative regional temperature time series (°C).
+    R : float
+        Weighting parameter (0 ≤ R ≤ 1). Determines the contribution of T0.
+        R=0 uses T (global mean), R=1 uses T0 (regional temperature).
     dt : float
         Time step between temperature observations (years). Default is 1.0 (annual data).
     a, b, c : float
@@ -452,33 +461,37 @@ def compute_damages(temperature_series, dt=1.0, a=0.002, b=0.001, c=0.0005, D0=0
     damages : np.ndarray
         Time series of computed damages.
     dT_dt : np.ndarray
-        Rate of change of temperature anomaly.
+        Rate of change of the weighted temperature anomaly.
     """
-
-    T = np.asarray(temperature_series)
+    # Compute weighted temperature timeseries
+    T_weighted = (1 - R) * np.asarray(T) + R * np.asarray(T0)
 
     # Compute rate of temperature change (central differences)
-    dT_dt = np.zeros_like(T)
-    dT_dt[1:-1] = np.abs(T[2:] - T[:-2]) / (2 * dt)
-    dT_dt[0] = (T[1] - T[0]) / dt  # Forward difference at start
-    dT_dt[-1] = (T[-1] - T[-2]) / dt  # Backward difference at end
+    dT_dt = np.zeros_like(T_weighted)
+    dT_dt[1:-1] = np.abs(T_weighted[2:] - T_weighted[:-2]) / (2 * dt)
+    dT_dt[0] = (T_weighted[1] - T_weighted[0]) / dt  # Forward difference at start
+    dT_dt[-1] = (T_weighted[-1] - T_weighted[-2]) / dt  # Backward difference at end
 
     # Compute damages
-    damages = D0 + a * T**2 + b * dT_dt**2 + c * T * dT_dt
+    damages = D0 + a * T_weighted**2 + b * dT_dt**2 + c * T_weighted * dT_dt
 
     return damages, dT_dt
 
 
-def calc_damages(T, damage_parameter_sets):
+def calc_damages(T, T0, damage_parameter_sets):
     """
-    Calculate damages for multiple parameter sets.
+    Calculate damages for multiple parameter sets, incorporating inter-regional inequality.
 
     Parameters:
     ----------
     T : array-like
-        Temperature time series.
+        Global mean temperature time series.
+    T0 : array-like
+        Alternative regional temperature time series.
     damage_parameter_sets : dict
         Dictionary of damage parameter sets.
+    R : float
+        Weighting parameter (0 ≤ R ≤ 1). Determines the contribution of T0.
 
     Returns:
     -------
@@ -487,8 +500,14 @@ def calc_damages(T, damage_parameter_sets):
     """
     damages = {}
     for key, params in damage_parameter_sets.items():
-        damages[key], dT_dt = compute_damages(
-            T, a=params["a"], b=params["b"], c=params["c"], D0=params["D0"]
+        damages[key], _ = compute_damages(
+            T,
+            T0,
+            R=params["R"],
+            a=params["a"],
+            b=params["b"],
+            c=params["c"],
+            D0=params["D0"],
         )
 
     return damages
@@ -532,7 +551,6 @@ def integrate_damages(
         Discount factor time series.
     """
     damages = np.asarray(damages)
-    # T = np.tile(np.arange(len(damages)) * dt, (damages.shape[1],1))
     T = np.arange(len(damages)) * dt
     if method == "standard":
         # Constant discounting
@@ -546,10 +564,7 @@ def integrate_damages(
 
     else:
         raise ValueError("Invalid method. Choose 'standard' or 'ethical'.")
-    if damages.ndim > 1:
-        discount_factors = np.repeat(
-            discount_factors[:, None], damages.shape[1], axis=1
-        )
+
     # Present value of damages
     pv_damages = (
         np.sum(damages[tstart:] * discount_factors[: len(damages[tstart:])], axis=0)
@@ -559,17 +574,34 @@ def integrate_damages(
     return pv_damages, discount_factors
 
 
-def icalc_damages(T, damage_parameter_sets):
-    idamages = {}
-    damages = calc_damages(T, damage_parameter_sets)
-    for key in damage_parameter_sets.keys():
-        idamages[key + "_standard"], discount_factors = integrate_damages(
-            damages[key], method="standard"
-        )
-    for key in damage_parameter_sets.keys():
+def test_damages():
+    """
+    Test the modified damage functions with example data.
+    """
+    # Example temperature timeseries
+    T = np.linspace(1.0, 3.0, 100)  # Global mean temperature
+    T0 = np.linspace(1.5, 4.0, 100)  # Regional temperature
 
-        idamages[key + "_ethical"], discount_factors = integrate_damages(
-            damages[key], method="ethical"
-        )
+    # Damage parameter sets
+    damage_parameter_sets = {
+        "low": {"a": 0.002, "b": 0.001, "c": 0.0005, "D0": 0.0},
+        "high": {"a": 0.004, "b": 0.002, "c": 0.001, "D0": 0.1},
+    }
 
-    return idamages
+    # Calculate damages with R=0 (global mean temperature)
+    damages_global = calc_damages(T, T0, damage_parameter_sets, R=0.0)
+
+    # Calculate damages with R=1 (regional temperature)
+    damages_regional = calc_damages(T, T0, damage_parameter_sets, R=1.0)
+
+    # Calculate damages with R=0.5 (weighted average)
+    damages_weighted = calc_damages(T, T0, damage_parameter_sets, R=0.5)
+
+    print("Damages with R=0 (Global Mean):", damages_global)
+    print("Damages with R=1 (Regional):", damages_regional)
+    print("Damages with R=0.5 (Weighted):", damages_weighted)
+
+
+# Run the test function
+if __name__ == "__main__":
+    test_damages()

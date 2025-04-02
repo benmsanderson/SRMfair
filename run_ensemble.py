@@ -176,6 +176,7 @@ if 1:
     Cmat = np.zeros((nt, len(df), nens, nssps))
     Fmat = np.zeros((nt, len(df), nens, nssps))
     Tmat = np.zeros((nt, len(df), nens, nssps))
+    T2mat = np.zeros((nt, len(df), nens, nssps))
     srmmat = np.zeros((nt, len(df), nens, nssps))
     demat = np.zeros((nt, len(df), nens, nssps))
     T0mat = np.zeros((nt, len(df), nens, nssps))
@@ -193,6 +194,7 @@ if 1:
                     Cmat[:, i, j, k],
                     Fmat[:, i, j, k],
                     Tmat[:, i, j, k],
+                    T2mat[:, i, j, k],
                     srmmat[:, i, j, k],
                     demat[:, i, j, k],
                     T0mat[:, i, j, k],
@@ -207,6 +209,7 @@ if 1:
         Cmat=Cmat,
         Fmat=Fmat,
         Tmat=Tmat,
+        T2mat=T2mat,
         srmmat=srmmat,
         demat=demat,
         T0mat=T0mat,
@@ -218,6 +221,7 @@ else:
     Cmat = data["Cmat"]
     Fmat = data["Fmat"]
     Tmat = data["Tmat"]
+    T2mat = data["T2mat"]
     srmmat = data["srmmat"]
     demat = data["demat"]
     T0mat = data["T0mat"]
