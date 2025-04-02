@@ -2,10 +2,11 @@ from fair.tools.ensemble import tcrecs_generate
 from fair.forward import fair_scm
 import fair
 from scipy import stats
+import time
 import numpy as np
 import sys
 import pandas as pd
-
+import os
 
 def print_progress_bar(index, total, label):
     """
@@ -317,7 +318,8 @@ def simulate_failure(
         raise ValueError("Mean must be between 0 and 1")
     alpha = mean_efficacy * 10
     beta = (1 - mean_efficacy) * 10
-
+    seed = os.getpid()+int(time.time())
+    np.random.seed(seed)
     failures = np.random.rand(total_years) < prob_failure
     outage_lengths = np.random.poisson(avg_outage_length, total_years)
     efficacy = np.random.beta(alpha, beta, total_years)

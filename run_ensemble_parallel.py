@@ -7,7 +7,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from fair.SSPs import ssp370, ssp126, ssp585, ssp119, ssp245, ssp534, ssp460
 from functions import *
 
-num_cores = 50
+num_cores = 200
 
 
 def calcProcessTime(starttime, cur_iter, max_iter):
@@ -153,10 +153,11 @@ if __name__ == "__main__":
 
         # Track progress
         for i, future in enumerate(as_completed(futures), start=1):
+            
             j, Cmat_j, Fmat_j, Tmat_j, T2mat_j, srmmat_j, demat_j, T0mat_j = (
                 future.result()
             )
-
+            print(j)
             # Store results for the current ensemble member
             Cmat[:, :, j, :] = Cmat_j
             Fmat[:, :, j, :] = Fmat_j
@@ -167,8 +168,8 @@ if __name__ == "__main__":
             T0mat[:, :, j, :] = T0mat_j
 
             # Update progress bar
-            elapsed, remaining, finish_time = calcProcessTime(t0, i, nens)
-            print_progress_bar(i, nens, elapsed, remaining, finish_time)
+            #elapsed, remaining, finish_time = calcProcessTime(t0, i, nens)
+            #print_progress_bar(i, nens, elapsed, remaining, finish_time)
 
     print("\nAll simulations completed.")
 
