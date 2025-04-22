@@ -569,12 +569,27 @@ def integrate_damages(
 
     # Present value of damages
     pv_damages = (
-        np.sum(damages[tstart:] * discount_factors[: len(damages[tstart:])], axis=0)
+        np.sum(damages[tstart:] * discount_factors[: len(damages[tstart:]),np.newaxis], axis=0)
         * dt
     )
 
     return pv_damages, discount_factors
 
+
+def icalc_damages(T,T2,  damage_parameter_sets):
+    idamages = {}
+    damages = calc_damages(T,T2, damage_parameter_sets)
+    for key in damage_parameter_sets.keys():
+        idamages[key + "_standard"], discount_factors = integrate_damages(
+            damages[key], method="standard"
+        )
+    for key in damage_parameter_sets.keys():
+
+        idamages[key + "_ethical"], discount_factors = integrate_damages(
+            damages[key], method="ethical"
+        )
+
+    return idamages
 
 def test_damages():
     """
